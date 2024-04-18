@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime as dt
 import streamlit as st
+from sklearn.preprocessing import MinMaxScaler
 
 # Streamlit page setup
 st.title('S&P 500 Stock Analysis')
@@ -35,4 +36,10 @@ st.success('Data loading complete!')
 
 df_one_symbol = df
 # Display the DataFrame in the Streamlit app
+df_one_symbol.isnull().sum()
+df_one_symbol.fillna(method='ffill', inplace=True)
 st.write(df_one_symbol.head())  # Show the first few rows of the DataFrame
+
+scaler = MinMaxScaler(feature_range=(0,1))
+
+df_scaled = scaler.fit_transform(df_one_symbol['close'].values.reshape(-1,1))
