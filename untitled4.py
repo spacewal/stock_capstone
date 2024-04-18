@@ -8,7 +8,8 @@ import datetime as dt
 import streamlit as st
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
-from keras.layers import Dense, LSTM, Dropout, AdditiveAttention, Permute, Reshape, Multiply
+from keras.layers import Dense, LSTM, Dropout, AdditiveAttention, Permute, Reshape, Multiply, BatchNormalization
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard, CSVLogger
 
 # Streamlit page setup
 st.title('S&P 500 Stock Analysis')
@@ -62,49 +63,64 @@ y_train, y_test = y[:train_size], y[train_size:]
 X_train, y_train = np.array(X_train), np.array(y_train)
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
-# Training Model 1
-with st.spinner('Training Model 1...'):
-    model1 = Sequential()
+model = Sequential()
 
-    model1.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
-    model1.add(LSTM(units=50, return_sequences=True))
-    model1.add(LSTM(units=50))
-    model1.add(Dense(1))
-    model1.compile(optimizer='adam', loss='mean_squared_error')
-    
-    # Train the model
-    history1 = model1.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+model.add(LSTM(units=50, return_sequences=True))
+model.add(LSTM(units=50, return_sequences=False))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
 
-st.success('Training of Model 1 complete!')
+model = Sequential()
 
-# Training Model 2 with attention
-with st.spinner('Training Model 2 with attention...'):
-    # Define the input layer
-    inputs = Input(shape=(X_train.shape[1], 1))
+model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+model.add(LSTM(units=50, return_sequences=True))
 
-    # Add LSTM layers
-    lstm_out1 = LSTM(units=50, return_sequences=True)(inputs)
-    lstm_out2 = LSTM(units=50, return_sequences=True)(lstm_out1)
-    
-    # Applying attention mechanism
-    attention_out = AdditiveAttention()([lstm_out2, lstm_out2])
-    
-    # Combining LSTM outputs and attention outputs
-    multiply_layer = Multiply()([lstm_out2, attention_out])
+attention = AdditiveAttention(name = 'attention_weight')
 
-    # Adding a Flatten layer before the final Dense layer
-    flat_layer = Flatten()(multiply_layer)
+model.add(Permute((2,1)))
+model.add(Reshape((-1, X_train.shape[1])))
+attention_result = attention([model.output, model.output])
+multiply_layer = Multiply()([model.output, attention_result])
 
-    # Final Dense layer for output
-    output = Dense(1)(flat_layer)
+# Return to original shape
+model.add(Permute((2, 1)))
+model.add(Reshape((-1, 50)))
 
-    # Create the model
-    model2 = Model(inputs=[inputs], outputs=[output])
+# Adding a Flatten layer before the final Dense layer
+model.add(tf.keras.layers.Flatten())
 
-    # Compile the model
-    model2.compile(optimizer='adam', loss='mean_squared_error')
+# Final Dense layer
+model.add(Dense(1))
 
-    # Train the model
-    history2 = model2.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+# Compile the model
+model.compile(optimizer='adam', loss='mean_squared_error')
 
-st.success('Training of Model 2 with attention complete!')
+# Train the model
+history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+
+model.add(Dropout(0.2))
+model.add(BatchNormalization())
+
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+model.summary()
+
+history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+
+early_stopping = EarlyStopping(monitor='val_loss', patience=10) #  restore_best_weights=True
+history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2, callbacks=[early_stopping])
+
+model_checkpoint = ModelCheckpoint('best_model.keras', save_best_only=True, monitor='val_loss', mode='min')
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5) #  min_lr=0.00001
+tensorboard = TensorBoard(log_dir='./logs')
+csv_logger = CSVLogger('training_log.csv')
+callbacks_list = [early_stopping, model_checkpoint, reduce_lr, tensorboard, csv_logger]
+history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2, callbacks=callbacks_list)
+
+X_test = np.array(X_test)
+y_test = np.array(y_test)
+X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+test_loss = model.evaluate(X_test, y_test)
+st.write('Test loss:', test_loss)
