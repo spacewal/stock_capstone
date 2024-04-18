@@ -25,11 +25,14 @@ selected_symbol = st.selectbox('Select a stock symbol:', unique_symbols)
 # Fetch and display stock data for the selected symbol
 if selected_symbol:
     with st.spinner(f'Fetching data for {selected_symbol}...'):
-        stock_data = yf.download(selected_symbol, start=eight_years_ago, end=current_date)
-        
-        # Remove the time component from the index and rename it to 'Date'
-        stock_data.reset_index(inplace=True)
-        stock_data.rename(columns={'index': 'Date'}, inplace=True)
-        
+        df = yf.download(tickers=selected_symbol, start=start_date, end=end_date)
+
+        # Format the date to remove the time part and reset the index without adding a new column
+        df.index = df.index.date  # Convert the index to a date-only format
+        df.reset_index(inplace=True)  # Reset the index to get 'Date' as a column
+        df.rename(columns={'index': 'Date'}, inplace=True)  # Rename the column to 'Date'
+
+        # Display the DataFrame without the index column
+        st.dataframe(df.set_index('Date'), width=None, height=None)  # Set 'Date' as the index for display
+
         st.success('Data fetched successfully!')
-        st.write(stock_data.head())  # Display the first few rows of the stock data
