@@ -36,4 +36,4 @@ df_one_symbol.isnull().sum()
 
 df_one_symbol.fillna(method='ffill', inplace=True)
 
-st.write(df_one_symbol.head())
+st.dataframe(df_one_symbol)
