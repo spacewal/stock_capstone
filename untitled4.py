@@ -26,6 +26,10 @@ selected_symbol = st.selectbox('Select a stock symbol:', unique_symbols)
 if selected_symbol:
     with st.spinner(f'Fetching data for {selected_symbol}...'):
         stock_data = yf.download(selected_symbol, start=eight_years_ago, end=current_date)
-        stock_data.index = stock_data.index.date  # Remove the time component from the index
+        
+        # Remove the time component from the index and rename it to 'Date'
+        stock_data.reset_index(inplace=True)
+        stock_data.rename(columns={'index': 'Date'}, inplace=True)
+        
         st.success('Data fetched successfully!')
         st.write(stock_data.head())  # Display the first few rows of the stock data
