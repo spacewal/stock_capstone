@@ -33,5 +33,6 @@ df.index.name = 'date'
 # Display successful loading message
 st.success('Data loading complete!')
 
+df_one_symbol = df
 # Display the DataFrame in the Streamlit app
-st.write(df.head())  # Show the first few rows of the DataFrame
+st.write(df_one_symbol.head())  # Show the first few rows of the DataFrame
