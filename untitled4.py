@@ -32,3 +32,8 @@ df.index.names = ['date', 'ticker']
 
 df_one_symbol = df[df.index.get_level_values('ticker') == selected_symbol]
 
+df_one_symbol.isnull().sum()
+
+df_one_symbol.fillna(method='ffill', inplace=True)
+
+st.write(df_one_symbol.head())
