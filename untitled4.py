@@ -62,45 +62,49 @@ y_train, y_test = y[:train_size], y[train_size:]
 X_train, y_train = np.array(X_train), np.array(y_train)
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
-with st.spinner('Training the model 1...'):
-    model = Sequential()
+# Training Model 1
+with st.spinner('Training Model 1...'):
+    model1 = Sequential()
 
-    model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
-    model.add(LSTM(units=50, return_sequences=True))
-    model.add(LSTM(units=50, return_sequences=False))
-    model.add(Dense(1))
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model1.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+    model1.add(LSTM(units=50, return_sequences=True))
+    model1.add(LSTM(units=50))
+    model1.add(Dense(1))
+    model1.compile(optimizer='adam', loss='mean_squared_error')
     
     # Train the model
-    history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+    history1 = model1.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
 
-st.success('Training complete!')
+st.success('Training of Model 1 complete!')
 
-with st.spinner('Training the model 2...'):
-    model = Sequential()
-    model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
-    model.add(LSTM(units=50, return_sequences=True))
-    attention = AdditiveAttention(name = 'attention_weight')
-    model.add(Permute((2,1)))
-    model.add(Reshape((-1, X_train.shape[1])))
-    attention_result = attention([model.output, model.output])
-    multiply_layer = Multiply()([model.output, attention_result])
+# Training Model 2 with attention
+with st.spinner('Training Model 2 with attention...'):
+    # Define the input layer
+    inputs = Input(shape=(X_train.shape[1], 1))
 
-    # Return to original shape
-    model.add(Permute((2, 1)))
-    model.add(Reshape((-1, 50)))
+    # Add LSTM layers
+    lstm_out1 = LSTM(units=50, return_sequences=True)(inputs)
+    lstm_out2 = LSTM(units=50, return_sequences=True)(lstm_out1)
+    
+    # Applying attention mechanism
+    attention_out = AdditiveAttention()([lstm_out2, lstm_out2])
+    
+    # Combining LSTM outputs and attention outputs
+    multiply_layer = Multiply()([lstm_out2, attention_out])
 
     # Adding a Flatten layer before the final Dense layer
-    model.add(tf.keras.layers.Flatten())
+    flat_layer = Flatten()(multiply_layer)
 
-    # Final Dense layer
-    model.add(Dense(1))
+    # Final Dense layer for output
+    output = Dense(1)(flat_layer)
+
+    # Create the model
+    model2 = Model(inputs=[inputs], outputs=[output])
 
     # Compile the model
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model2.compile(optimizer='adam', loss='mean_squared_error')
 
     # Train the model
-    history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+    history2 = model2.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
 
-st.success('Training complete!')
-st.success('Training complete!')
+st.success('Training of Model 2 with attention complete!')
