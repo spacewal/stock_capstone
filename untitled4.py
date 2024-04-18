@@ -62,3 +62,16 @@ y_train, y_test = y[:train_size], y[train_size:]
 X_train, y_train = np.array(X_train), np.array(y_train)
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
+with st.spinner('Training the model...'):
+    model = Sequential()
+
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+    model.add(LSTM(units=50, return_sequences=True))
+    model.add(LSTM(units=50, return_sequences=False))
+    model.add(Dense(1))
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    
+    # Train the model
+    history = model.fit(X_train, y_train, epochs=100, batch_size=25, validation_split=0.2)
+
+st.success('Training complete!')
