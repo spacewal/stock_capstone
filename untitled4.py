@@ -42,4 +42,4 @@ st.write(df_one_symbol.head())  # Show the first few rows of the DataFrame
 
 scaler = MinMaxScaler(feature_range=(0,1))
 
-df_scaled = scaler.fit_transform(df_one_symbol['close'].values.reshape(-1,1))
+df_scaled = scaler.fit_transform(df_one_symbol['Close'].values.reshape(-1,1))
