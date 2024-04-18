@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import datetime as dt
 import streamlit as st
 from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import Dense, LSTM, Dropout
 
 # Streamlit page setup
 st.title('S&P 500 Stock Analysis')
@@ -43,3 +45,20 @@ st.write(df_one_symbol.head())  # Show the first few rows of the DataFrame
 scaler = MinMaxScaler(feature_range=(0,1))
 
 df_scaled = scaler.fit_transform(df_one_symbol['Close'].values.reshape(-1,1))
+
+X = []
+y = []
+
+for i in range(60, len(df_scaled)):
+    X.append(df_scaled[i-60:i, 0])
+    y.append(df_scaled[i, 0])
+
+train_size = int(len(X)*0.8)
+test_size = len(X) - train_size
+
+X_train, X_test = X[:train_size], X[train_size:]
+y_train, y_test = y[:train_size], y[train_size:]
+
+X_train, y_train = np.array(X_train), np.array(y_train)
+X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+
